@@ -1,0 +1,14 @@
+<table border="1px">
+    <tr>
+        <td> Nome </td>
+        <td> Editar </td>
+        <td> Deletar </td>
+    </tr>
+    {{#each categorias}}
+    <tr>
+        <td>{{nome}}</td>
+        <td><a href="categoriaUpdate/{{id}}">Editar</a></td>
+        <td><a href="categoriaDelete/{{id}}">Deletar</a></td>
+    </tr>
+    {{/each}}
+</table>

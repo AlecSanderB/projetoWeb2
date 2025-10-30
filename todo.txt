@@ -1,8 +1,7 @@
 Aceitar e enviar requisições do minecraft para o banco de dados
 Definir os models das tabelas para serem usadas
 	-Ao menos um relacionamento de n para n tabelas
-	-Ao menos um relacionamento de 1 para n tabelas
+	-Ao menos um relacionamento de 1 para n tabelas (tabela categoria > tabela fábricas)?
 	-Ao menos 6 tabelas
-Criar um perfil de visualizador e um de gerente, com permissões diferentes
-Implementar sistema de sessões
+Criar um perfil de visualizador, um de gerente, e um de 'fábrica', com permissões diferentes
 Decidir em um layout para a interface

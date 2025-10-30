@@ -1,0 +1,19 @@
+<form action="/receitaCreate" method="post">
+    Nome: <input type="text" name="nome">
+    <br> <br>
+    Ingredientes: <input type="text" name="ingredientes">
+    <br> <br>
+    Preparo: <input type="text" name="preparo">
+    <br> <br>
+    Ingredientes:
+    <select name="categoriaId">
+        {{#each categorias}}
+        <tr>
+            <option value={{id}}>{{nome}}</option>
+        </tr>
+        {{/each}}
+    </select>
+    <br> <br>
+    <input type="submit" value="Cadastrar">
+        
+</form>
