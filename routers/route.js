@@ -1,14 +1,13 @@
 const express = require('express');
 const db = require('../config/db_sequelize');
 const controllerUsuario = require('../controllers/controllerUsuario');
-const controllerComentario = require('../controllers/controllerComentario');
 const controllerCategoria = require('../controllers/controllerCategoria');
 const controllerReceita = require('../controllers/controllerReceita');
 const route = express.Router();
 
-/*db.sequelize.sync({force: true}).then(() => {
+/* db.sequelize.sync({force: true}).then(() => {
     console.log('{ force: true }');
-});*/
+}); */
 //db.Usuario.create({login:'admin', senha:'1234', tipo:1});
 
 
@@ -50,8 +49,3 @@ route.get("/receitaList", controllerReceita.getList);
 route.get("/receitaUpdate/:id", controllerReceita.getUpdate);
 route.post("/receitaUpdate", controllerReceita.postUpdate);
 route.get("/receitaDelete/:id", controllerReceita.getDelete);
-
-//Controller Comentario
-route.get("/comentarioCreate", controllerComentario.getCreate);
-route.post("/comentarioCreate", controllerComentario.postCreate);
-route.get("/comentarioList", controllerComentario.getList);
