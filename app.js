@@ -2,6 +2,7 @@ const routes = require('./routers/route');
 const handlebars = require('express-handlebars');
 const express = require('express');
 //var cookieParser = require('cookie-parser');
+const middlewares = require('./middlewares/middlewares');
 var session = require('express-session');
 const app = express();
 app.use(session({secret:'textosecreto',
@@ -15,6 +16,7 @@ app.set('view engine','handlebars');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(middlewares.sessionControl);
 app.use(routes);
 
 app.use(
