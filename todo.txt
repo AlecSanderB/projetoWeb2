@@ -1,4 +1,3 @@
-Aceitar e enviar requisições do minecraft para o banco de dados
 Definir os models das tabelas para serem usadas
 	-Ao menos um relacionamento de n para n tabelas
 	-Ao menos um relacionamento de 1 para n tabelas (tabela categoria > tabela fábricas)?
