@@ -7,9 +7,6 @@ const sequelize = new Sequelize('web2', 'postgres', 'postgres', {
 var db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
+db.Chest = require('../models/relational/chest.js')(sequelize, Sequelize);
 db.Usuario = require('../models/relational/usuario.js')(sequelize, Sequelize);
-db.Receita = require('../models/relational/receita.js')(sequelize, Sequelize);
-db.Categoria = require('../models/relational/categoria.js')(sequelize, Sequelize);
-db.Categoria.hasMany(db.Receita, {foreignKey:'categoriaId', onDelete: 'NO ACTION'});
 module.exports = db;
-

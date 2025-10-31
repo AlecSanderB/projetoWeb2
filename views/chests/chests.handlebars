@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chest Layout</title>
+</head>
+<body>
+    <center>
+        <h1> Chest Layout </h1>
+            <table border="1">
+                <thead>
+                    <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Quantidade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each Chest}}
+                    <tr>
+                        <td>{{id}}</td>
+                        <td>{{name}}</td>
+                        <td>{{amount}}</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        {{{body}}}
+    </center>
+</html>

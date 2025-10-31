@@ -1,21 +1,15 @@
 module.exports = (sequelize, Sequelize) => {
-    const Receita = sequelize.define('receita', {
+    const Categoria = sequelize.define('chest', {
         id: {
             type: Sequelize.INTEGER,
             autoIncrement: true, allowNull: false, primaryKey: true
         },
-        nome: {
+        name: {
             type: Sequelize.STRING, allowNull: false
         },
-        ingredientes: {
-            type: Sequelize.STRING, allowNull: false
-        },
-        preparo: {
-            type: Sequelize.STRING, allowNull: false
-        },
-        categoriaId:{
+        amount: {
             type: Sequelize.INTEGER, allowNull: false
         }
     });
-    return Receita;
+    return Categoria;
 }
