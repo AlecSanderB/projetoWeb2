@@ -1,24 +1,29 @@
 const express = require("express");
 const session = require("express-session");
-const handlebars = require("express-handlebars");
+const cors = require("cors");
 
 const middlewares = require("./middlewares/middlewares");
 const apiRoutes = require("./routers/api");
+const authRoutes = require("./routers/auth");
 
 const app = express();
 
-app.use(
-  session({
-    secret: "textosecreto",
-    cookie: { maxAge: 30 * 60 * 1000 }
-  })
-);
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
 
-app.engine("handlebars", handlebars.engine({ defaultLayout: "main" }));
-app.set("view engine", "handlebars");
+app.use(session({
+  secret: "textosecreto",
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 30 * 60 * 1000 }
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use("/auth", authRoutes);
 
 app.use(middlewares.sessionControl);
 

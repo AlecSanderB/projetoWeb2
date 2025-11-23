@@ -9,6 +9,7 @@ const ChestsController = require("../controllers/chestsController");
 const ChestHistoryController = require("../controllers/chestHistoryController");
 const MachineHistoryController = require("../controllers/machineHistoryController");
 const UserFactoryController = require("../controllers/userFactoryController");
+const AuthController = require("../controllers/authController");
 
 router.get("/roles", RolesController.index);
 router.get("/roles/:id", RolesController.show);
@@ -53,5 +54,7 @@ router.delete("/machine-history/:id", MachineHistoryController.delete);
 router.get("/user-factories", UserFactoryController.index);
 router.post("/user-factories", UserFactoryController.create);
 router.delete("/user-factories", UserFactoryController.delete);
+
+router.get("/me", AuthController.me);
 
 module.exports = router;

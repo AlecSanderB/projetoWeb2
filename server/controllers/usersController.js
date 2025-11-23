@@ -13,8 +13,12 @@ module.exports = {
 
   async show(req, res) {
     try {
-      const user = await db.Users.findByPk(req.params.id, { include: db.Roles });
+      const user = await db.Users.findByPk(req.params.id, {
+        attributes: ['id', 'name', 'role_id']
+      });
+
       if (!user) return res.status(404).json({ error: "User not found" });
+
       res.json(user);
     } catch (err) {
       res.status(500).json({ error: "Failed to fetch user", details: err.message });
