@@ -26,6 +26,37 @@ export default function Home() {
     loadFactories();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const updatedChests = await apiGet("/chests");
+      setChests(updatedChests);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (selectedChest) {
+      const updated = chests.find(c => c.id === selectedChest.id);
+      if (updated) setSelectedChest(updated);
+    }
+  }, [chests, selectedChest?.id]);
+
+  useEffect(() => {
+    if (selectedMachine) {
+      const updated = machines.find(m => m.id === selectedMachine.id);
+      if (updated) setSelectedMachine(updated);
+    }
+  }, [machines, selectedMachine?.id]);
+
+  useEffect(() => {
+    if (selectedFactory) {
+      const updated = factories.find(f => f.id === selectedFactory.id);
+      if (updated) setSelectedFactory(updated);
+    }
+  }, [factories, selectedFactory?.id]);
+
+
   async function loadUser() {
     const data = await apiGet("/me");
     setUser(data);
@@ -41,6 +72,7 @@ export default function Home() {
     const allChests = await apiGet("/chests");
     setChests(allChests);
   }
+
   async function addItem({ type, newItem, stateSetter, apiPath, setSelected, setChildren, tempIdPrefix = "temp" }) {
     if (!user) return;
     const tempId = `${tempIdPrefix}-${Date.now()}`;
@@ -70,7 +102,6 @@ export default function Home() {
 
   async function addFactory() {
     if (!user || user.role_id !== 1) return null;
-
     const newFactoryData = { name: "", coord_x: 0, coord_y: 0 };
 
     try {
@@ -87,16 +118,29 @@ export default function Home() {
     }
   }
 
-
   async function addMachine() {
     if (!selectedFactory) return;
-    await addItem({ type: "machine", newItem: { factory_id: selectedFactory.id }, stateSetter: setMachines, apiPath: "/machines", setSelected: setSelectedMachine, setChildren: setChests });
+    await addItem({
+      type: "machine",
+      newItem: { factory_id: selectedFactory.id },
+      stateSetter: setMachines,
+      apiPath: "/machines",
+      setSelected: setSelectedMachine,
+      setChildren: setChests
+    });
   }
 
   async function addChest() {
     if (!selectedMachine) return;
-    await addItem({ type: "chest", newItem: { machine_id: selectedMachine.id }, stateSetter: setChests, apiPath: "/chests", setSelected: setSelectedChest });
+    await addItem({
+      type: "chest",
+      newItem: { machine_id: selectedMachine.id },
+      stateSetter: setChests,
+      apiPath: "/chests",
+      setSelected: setSelectedChest
+    });
   }
+
   async function saveFactory(factory) {
     const updated = { ...factory, ...editingValues };
     await apiPut(`/factories/${factory.id}`, updated);
@@ -156,7 +200,6 @@ export default function Home() {
     if (selectedChest?.id === chest.id) setSelectedChest(null);
   }
 
-  // --- Selection handlers ---
   function selectFactory(factory) {
     setSelectedFactory(factory);
     setSelectedMachine(null);
@@ -172,7 +215,6 @@ export default function Home() {
     setSelectedChest(chest);
   }
 
-  // --- Main content / Edit panel ---
   let mainContent;
   if (selectedChest) {
     mainContent = (
@@ -280,7 +322,7 @@ export default function Home() {
   );
 }
 
-// --- Dynamic styles ---
+// --- Styles ---
 const getContainerStyles = (darkMode) => ({
   display: "flex",
   flexDirection: "column",

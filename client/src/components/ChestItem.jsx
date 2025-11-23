@@ -1,13 +1,6 @@
 import React, { useRef } from "react";
 
-export default function ChestItem({
-  chest,
-  darkMode,
-  setEditingId,
-  setEditingValues,
-  isManager,
-  selectChest
-}) {
+export default function ChestItem({ chest, darkMode, selectChest }) {
   const clickTimer = useRef(null);
 
   const handleClick = () => {
@@ -27,11 +20,8 @@ export default function ChestItem({
   return (
     <div style={{ display: "flex", alignItems: "center", userSelect: "none" }}>
       <span style={{ display: "inline-block", width: "24px" }} />
-      <span
-        onClick={handleClick}
-        style={textStyle}
-      >
-        📦 {chest.item_name || "<unnamed>"}
+      <span onClick={handleClick} style={textStyle}>
+        📦 {chest.amount != null ? `(${chest.amount}) ` : ""}{chest.item_name || "<unnamed>"}
       </span>
     </div>
   );

@@ -19,7 +19,8 @@ export default function FactoryItem({
   collapsed,
   toggleCollapse,
   collapsedMachines,
-  setCollapsedMachines
+  setCollapsedMachines,
+  addMachine
 }) {
   const clickTimer = useRef(null);
   const isCollapsed = collapsed || false;
@@ -70,10 +71,7 @@ export default function FactoryItem({
             style={{ flex: 1 }}
           />
         ) : (
-          <span
-            onClick={handleClick}
-            style={{ flex: 1, cursor: "pointer" }}
-          >
+          <span onClick={handleClick} style={{ flex: 1, cursor: "pointer" }}>
             🏭 {factory.name || "<unnamed>"}
           </span>
         )}

@@ -9,6 +9,7 @@ import {
     switchSliderStyles,
     switchCircleStyles
 } from "./EditPanelStyles";
+import MachineHistoryPanel from "./MachineHistoryPanel";
 
 export default function MachineEditPanel({
     item,
@@ -86,7 +87,6 @@ export default function MachineEditPanel({
                         onChange={(e) => handleFieldChange("coord_x", e.target.value === "" ? 0 : Number(e.target.value))}
                         style={{ ...getInputStyles(darkMode), textAlign: "center", MozAppearance: "textfield" }}
                         inputMode="numeric"
-                        pattern="[0-9]*"
                     />
                 </div>
                 <div style={{ flex: "0.2", display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -97,17 +97,26 @@ export default function MachineEditPanel({
                         onChange={(e) => handleFieldChange("coord_y", e.target.value === "" ? 0 : Number(e.target.value))}
                         style={{ ...getInputStyles(darkMode), textAlign: "center", MozAppearance: "textfield" }}
                         inputMode="numeric"
-                        pattern="[0-9]*"
                     />
                 </div>
             </div>
 
-            {/* ID + Enabled + Rendered + Last Update */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span>ID: {item.id}</span>
-                    <label style={labelStyle}>Enabled:</label>
-                    <label style={switchLabelStyles}>
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginTop: "10px",
+                    width: "100%",
+                    flexWrap: "nowrap",
+                }}
+            >
+                <div style={{ flex: "0 0 16%", display: "flex", alignItems: "center" }}>
+                    <span style={{ fontWeight: "bold" }}>ID: {item.id}</span>
+                </div>
+
+                <div style={{ flex: "0 0 28%", display: "flex", alignItems: "center", gap: "6px", justifyContent: "center" }}>
+                    <label style={{ margin: 0 }}>Enabled:</label>
+                    <label style={{ ...switchLabelStyles, margin: 0 }}>
                         <input
                             type="checkbox"
                             checked={isEnabled}
@@ -118,20 +127,22 @@ export default function MachineEditPanel({
                             style={{
                                 ...switchSliderStyles,
                                 backgroundColor: isEnabled ? "#4caf50" : "#ccc",
+                                display: "flex",
+                                alignItems: "center",
                             }}
                         >
                             <span
                                 style={{
                                     ...switchCircleStyles,
-                                    transform: isEnabled ? "translateX(20px)" : "translateX(0px)"
+                                    transform: isEnabled ? "translateX(20px)" : "translateX(0px)",
                                 }}
                             />
                         </span>
                     </label>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <label style={labelStyle}>Rendered:</label>
+                <div style={{ flex: "0 0 28%", display: "flex", alignItems: "center", gap: "6px", justifyContent: "center" }}>
+                    <label style={{ margin: 0 }}>Rendered:</label>
                     <div
                         style={{
                             width: "16px",
@@ -142,13 +153,12 @@ export default function MachineEditPanel({
                     />
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                    <label style={labelStyle}>Last Update:</label>
+                <div style={{ flex: "0 0 28%", display: "flex", alignItems: "center", gap: "5px", justifyContent: "right" }}>
+                    <label style={{ margin: 0 }}>Last Update:</label>
                     <span>{lastUpdate ? lastUpdate.toLocaleTimeString() : "—"}</span>
                 </div>
             </div>
 
-            {/* Save + Add Child */}
             <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
                 <button
                     style={{ ...getButtonStyles(darkMode), backgroundColor: "#4caf50", color: "#fff", flex: 1 }}
@@ -185,6 +195,9 @@ export default function MachineEditPanel({
                 childrenList={childrenList}
                 darkMode={darkMode}
             />
+            <div style={{ marginTop: "15px" }}>
+                <MachineHistoryPanel machineId={item.id} darkMode={darkMode} />
+            </div>
         </div>
     );
 }

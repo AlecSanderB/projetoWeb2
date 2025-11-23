@@ -38,7 +38,8 @@ router.delete("/machines/:id", MachinesController.delete);
 router.get("/chests", ChestsController.index);
 router.get("/chests/:id", ChestsController.show);
 router.post("/chests", ChestsController.create);
-router.put("/chests/:id", ChestsController.update);
+router.put("/chests/:id", ChestsController.update);       
+router.post("/chests/:id/update", ChestsController.updateViaPost);
 router.delete("/chests/:id", ChestsController.delete);
 
 router.get("/chest-history", ChestHistoryController.index);

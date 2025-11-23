@@ -4,7 +4,9 @@ module.exports = {
 
   async index(req, res) {
     try {
-      const history = await db.MachineHistory.findAll();
+      const machineId = req.query.machine_id;
+      const where = machineId ? { machine_id: machineId } : {};
+      const history = await db.MachineHistory.findAll({ where });
       res.json(history);
     } catch (err) {
       res.status(500).json({ error: "Failed to fetch machine history", details: err.message });

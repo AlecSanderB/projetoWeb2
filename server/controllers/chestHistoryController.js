@@ -4,7 +4,9 @@ module.exports = {
 
   async index(req, res) {
     try {
-      const history = await db.ChestHistory.findAll();
+      const chestId = req.query.chest_id;
+      const where = chestId ? { chest_id: chestId } : {};
+      const history = await db.ChestHistory.findAll({ where });
       res.json(history);
     } catch (err) {
       res.status(500).json({ error: "Failed to fetch chest history", details: err.message });

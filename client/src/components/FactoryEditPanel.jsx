@@ -58,7 +58,6 @@ export default function FactoryEditPanel({
             onChange={(e) => handleFieldChange("coord_x", e.target.value === "" ? 0 : Number(e.target.value))}
             style={{ ...getInputStyles(darkMode), textAlign: "center", MozAppearance: "textfield" }}
             inputMode="numeric"
-            pattern="[0-9]*"
           />
         </div>
         <div style={{ flex: "0.2", display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -69,14 +68,13 @@ export default function FactoryEditPanel({
             onChange={(e) => handleFieldChange("coord_y", e.target.value === "" ? 0 : Number(e.target.value))}
             style={{ ...getInputStyles(darkMode), textAlign: "center", MozAppearance: "textfield" }}
             inputMode="numeric"
-            pattern="[0-9]*"
           />
         </div>
       </div>
 
       {/* ID */}
       <div style={{ marginTop: "10px", display: "flex", justifyContent: "flex-start" }}>
-        <span>ID: {item.id}</span>
+        <span style={{fontWeight: "bold"}}>ID: {item.id}</span>
       </div>
 
       {/* Save + Add Child */}

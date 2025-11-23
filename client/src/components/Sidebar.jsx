@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import FactoryItem from "./FactoryItem";
@@ -7,8 +7,6 @@ export default function Sidebar({
   factories,
   selectedFactory,
   selectedMachine,
-  machines = [],
-  chests = [],
   editingId,
   setEditingId,
   editingValues,
@@ -33,6 +31,9 @@ export default function Sidebar({
   const navigate = useNavigate();
   const isManager = user?.role_id === 1;
 
+  const [machines, setMachines] = useState([]);
+  const [chests, setChests] = useState([]);
+
   async function handleLogout() {
     try {
       await fetch("http://localhost:8081/auth/logout", {
@@ -45,13 +46,39 @@ export default function Sidebar({
     }
   }
 
+  // Periodically fetch machines and chests
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [machinesRes, chestsRes] = await Promise.all([
+          fetch("http://localhost:8081/api/machines"),
+          fetch("http://localhost:8081/api/chests")
+        ]);
+
+        const [machinesData, chestsData] = await Promise.all([
+          machinesRes.json(),
+          chestsRes.json()
+        ]);
+
+        setMachines(machinesData);
+        setChests(chestsData);
+      } catch (err) {
+        console.error("Failed to fetch machines or chests", err);
+      }
+    };
+
+    fetchData(); // initial fetch
+    const interval = setInterval(fetchData, 5000); // every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   const sidebarBg = darkMode ? "#1e1e2f" : "#f9f9f9";
   const borderColor = darkMode ? "#444" : "#ccc";
 
   return (
     <div
       style={{
-        width: "250px",
+        width: "300px",
         borderRight: `1px solid ${borderColor}`,
         display: "flex",
         flexDirection: "column",
@@ -82,9 +109,7 @@ export default function Sidebar({
             }}
             onClick={async () => {
               const newFactory = await addFactory();
-              if (newFactory) {
-                selectFactory(newFactory); // switch main panel to the new factory
-              }
+              if (newFactory) selectFactory(newFactory);
             }}
           >
             + Add Factory

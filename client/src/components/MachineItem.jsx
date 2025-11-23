@@ -48,10 +48,7 @@ export default function MachineItem({
           {collapseSymbol || <span style={{ display: "inline-block", width: "14px" }} />}
         </button>
 
-        <span
-          onClick={handleClick}
-          style={{ flex: 1, cursor: "pointer" }}
-        >
+        <span onClick={handleClick} style={{ flex: 1, cursor: "pointer" }}>
           ⚙️ {machine.name || "<unnamed>"}
         </span>
       </div>
@@ -63,11 +60,6 @@ export default function MachineItem({
               key={c.id}
               chest={c}
               darkMode={darkMode}
-              editingId={editingId}
-              setEditingId={setEditingId}
-              editingValues={editingValues}
-              setEditingValues={setEditingValues}
-              isManager={isManager}
               selectChest={selectChest}
             />
           ))}
