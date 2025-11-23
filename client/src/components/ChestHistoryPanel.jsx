@@ -18,7 +18,7 @@ export default function ChestHistoryPanel({ chestId, darkMode }) {
 
     useEffect(() => {
         loadHistory();
-        const interval = setInterval(loadHistory, 5000);
+        const interval = setInterval(loadHistory, 60000);
         return () => clearInterval(interval);
     }, [chestId]);
 

@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import MachineItem from "./MachineItem";
 
 export default function FactoryItem({
@@ -24,7 +24,13 @@ export default function FactoryItem({
 }) {
   const clickTimer = useRef(null);
   const isCollapsed = collapsed || false;
-  const isEditing = editingId === factory.id;
+  const isEditing = editingId?.type === "factory" && editingId.id === factory.id;
+
+  useEffect(() => {
+    if (isEditing && editingValues.id !== factory.id) {
+      setEditingValues({ id: factory.id, name: factory.name, coord_x: factory.coord_x, coord_y: factory.coord_y });
+    }
+  }, [isEditing, factory, editingValues, setEditingValues]);
 
   const handleClick = () => {
     if (clickTimer.current) return;
@@ -35,8 +41,10 @@ export default function FactoryItem({
   };
 
   const handleSave = () => {
-    saveFactory({ ...factory, ...editingValues });
-    setEditingId(null);
+    if (editingValues.name !== undefined) {
+      saveFactory({ ...factory, ...editingValues });
+      setEditingId({ type: null, id: null });
+    }
   };
 
   const hasChildren = machines.length > 0;
@@ -63,8 +71,9 @@ export default function FactoryItem({
 
         {isEditing ? (
           <input
-            value={editingValues.name ?? factory.name}
+            value={editingValues.name ?? ""}
             autoFocus
+            onFocus={() => setEditingId({ type: "factory", id: factory.id })}
             onChange={(e) => setEditingValues((prev) => ({ ...prev, name: e.target.value }))}
             onBlur={handleSave}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}

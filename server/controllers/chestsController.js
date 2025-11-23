@@ -33,7 +33,8 @@ module.exports = {
         include: db.ChestHistory
       });
       if (!chest) return res.status(404).json({ error: "Chest not found" });
-      res.json(chest);
+
+      res.json(chest.toJSON());
     } catch (err) {
       res.status(500).json({ error: "Failed to fetch chest", details: err.message });
     }

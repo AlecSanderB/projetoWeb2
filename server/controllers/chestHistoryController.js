@@ -28,6 +28,7 @@ module.exports = {
       const entry = await db.ChestHistory.create(req.body);
       res.status(201).json(entry);
     } catch (err) {
+      console.log(err);
       res.status(500).json({ error: "Failed to create history entry", details: err.message });
     }
   },

@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import FactoryItem from "./FactoryItem";
 
 export default function Sidebar({
   factories,
+  machines,
+  chests,
   selectedFactory,
   selectedMachine,
   editingId,
@@ -12,6 +14,8 @@ export default function Sidebar({
   editingValues,
   setEditingValues,
   saveFactory,
+  saveMachine,
+  saveChest,
   deleteFactory,
   deleteMachine,
   deleteChest,
@@ -31,49 +35,18 @@ export default function Sidebar({
   const navigate = useNavigate();
   const isManager = user?.role_id === 1;
 
-  const [machines, setMachines] = useState([]);
-  const [chests, setChests] = useState([]);
+  const sidebarBg = darkMode ? "#1e1e2f" : "#f9f9f9";
+  const borderColor = darkMode ? "#444" : "#ccc";
+  const editingHighlight = darkMode ? "#2a2a3c" : "#d0f0d0"; // background for editing
 
   async function handleLogout() {
     try {
-      await fetch("http://localhost:8081/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      await fetch("http://localhost:8081/auth/logout", { method: "POST", credentials: "include" });
       navigate("/");
     } catch (err) {
       console.error("Logout failed", err);
     }
   }
-
-  // Periodically fetch machines and chests
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [machinesRes, chestsRes] = await Promise.all([
-          fetch("http://localhost:8081/api/machines"),
-          fetch("http://localhost:8081/api/chests")
-        ]);
-
-        const [machinesData, chestsData] = await Promise.all([
-          machinesRes.json(),
-          chestsRes.json()
-        ]);
-
-        setMachines(machinesData);
-        setChests(chestsData);
-      } catch (err) {
-        console.error("Failed to fetch machines or chests", err);
-      }
-    };
-
-    fetchData(); // initial fetch
-    const interval = setInterval(fetchData, 5000); // every 5 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  const sidebarBg = darkMode ? "#1e1e2f" : "#f9f9f9";
-  const borderColor = darkMode ? "#444" : "#ccc";
 
   return (
     <div
@@ -117,46 +90,44 @@ export default function Sidebar({
         )}
       </div>
 
-      {/* Scrollable middle section */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "10px",
-          minHeight: 0,
-          paddingBottom: "60px",
-        }}
-      >
-        {factories.map((f) => (
-          <FactoryItem
+      {/* Factory list */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px", minHeight: 0, paddingBottom: "60px" }}>
+        {factories.map(f => (
+          <div
             key={f.id}
-            factory={f}
-            darkMode={darkMode}
-            selectedFactory={selectedFactory}
-            selectedMachine={selectedMachine}
-            machines={machines.filter((m) => m.factory_id === f.id)}
-            chests={chests}
-            editingId={editingId}
-            setEditingId={setEditingId}
-            editingValues={editingValues}
-            setEditingValues={setEditingValues}
-            saveFactory={saveFactory}
-            deleteFactory={deleteFactory}
-            deleteMachine={deleteMachine}
-            addChest={addChest}
-            deleteChest={deleteChest}
-            isManager={isManager}
-            selectFactory={selectFactory}
-            selectMachine={selectMachine}
-            selectChest={selectChest}
-            collapsed={collapsedFactories[f.id]}
-            toggleCollapse={() =>
-              setCollapsedFactories(prev => ({ ...prev, [f.id]: !prev[f.id] }))
-            }
-            collapsedMachines={collapsedMachines}
-            setCollapsedMachines={setCollapsedMachines}
-            addMachine={addMachine}
-          />
+            style={{
+              backgroundColor: editingId === f.id ? editingHighlight : "transparent",
+              borderRadius: "4px",
+              padding: "2px 0"
+            }}
+          >
+            <FactoryItem
+              factory={f}
+              darkMode={darkMode}
+              selectedFactory={selectedFactory}
+              selectedMachine={selectedMachine}
+              machines={machines.filter(m => m.factory_id === f.id)}
+              chests={chests}
+              editingId={editingId}
+              setEditingId={setEditingId}
+              editingValues={editingValues}
+              setEditingValues={setEditingValues}
+              saveFactory={saveFactory}
+              deleteFactory={deleteFactory}
+              deleteMachine={deleteMachine}
+              addMachine={addMachine}
+              addChest={addChest}
+              deleteChest={deleteChest}
+              isManager={isManager}
+              selectFactory={selectFactory}
+              selectMachine={selectMachine}
+              selectChest={selectChest}
+              collapsed={collapsedFactories[f.id]}
+              toggleCollapse={() => setCollapsedFactories(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
+              collapsedMachines={collapsedMachines}
+              setCollapsedMachines={setCollapsedMachines}
+            />
+          </div>
         ))}
       </div>
 
@@ -171,14 +142,7 @@ export default function Sidebar({
           zIndex: 10,
         }}
       >
-        <button
-          style={{
-            width: "100%",
-            backgroundColor: "#f44336",
-            color: "#fff",
-          }}
-          onClick={handleLogout}
-        >
+        <button style={{ width: "100%", backgroundColor: "#f44336", color: "#fff" }} onClick={handleLogout}>
           Log out
         </button>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import { getCardStyles, getInputStyles, getButtonStyles } from "./EditPanelStyles";
+import { apiPut, apiDelete } from "../api/api";
 
 export default function FactoryEditPanel({
   item,
@@ -15,7 +16,6 @@ export default function FactoryEditPanel({
   const [coordX, setCoordX] = useState(item.coord_x ?? 0);
   const [coordY, setCoordY] = useState(item.coord_y ?? 0);
 
-  // --- Sync state when `item` changes ---
   useEffect(() => {
     setName(item.name ?? "");
     setCoordX(item.coord_x ?? 0);
@@ -26,13 +26,30 @@ export default function FactoryEditPanel({
     if (fieldName === "name") setName(value);
     if (fieldName === "coord_x") setCoordX(value);
     if (fieldName === "coord_y") setCoordY(value);
-
-    saveCallback({ ...item, [fieldName]: value });
   };
 
-  const handleDelete = () => {
-    deleteCallback(item);
-    setShowDeleteModal(false);
+  const handleSave = async () => {
+    try {
+      const updated = await apiPut(`/factories/${item.id}`, {
+        ...item,
+        name,
+        coord_x: coordX,
+        coord_y: coordY
+      });
+      saveCallback(updated);
+    } catch (err) {
+      console.error("Failed to save factory:", err);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await apiDelete(`/factories/${item.id}`);
+      deleteCallback(item);
+      setShowDeleteModal(false);
+    } catch (err) {
+      console.error("Failed to delete factory:", err);
+    }
   };
 
   const labelStyle = { margin: 0, lineHeight: "1.2" };
@@ -74,14 +91,14 @@ export default function FactoryEditPanel({
 
       {/* ID */}
       <div style={{ marginTop: "10px", display: "flex", justifyContent: "flex-start" }}>
-        <span style={{fontWeight: "bold"}}>ID: {item.id}</span>
+        <span style={{ fontWeight: "bold" }}>ID: {item.id}</span>
       </div>
 
       {/* Save + Add Child */}
       <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
         <button
           style={{ ...getButtonStyles(darkMode), backgroundColor: "#4caf50", color: "#fff", flex: 1 }}
-          onClick={() => saveCallback({ ...item, name, coord_x: coordX, coord_y: coordY })}
+          onClick={handleSave}
         >
           Save
         </button>
