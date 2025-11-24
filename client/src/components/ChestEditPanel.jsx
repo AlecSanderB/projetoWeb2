@@ -14,14 +14,15 @@ const renderedCircleStyle = (isRendered) => ({
 });
 
 export default function ChestEditPanel({ item, saveCallback, deleteCallback, childrenList = [], darkMode }) {
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [coordX, setCoordX] = useState(item.coord_x ?? 0);
   const [coordY, setCoordY] = useState(item.coord_y ?? 0);
   const [amount, setAmount] = useState(item.amount ?? 0);
   const [lastUpdate, setLastUpdate] = useState(item.last_update ? new Date(item.last_update) : null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [rendered, timeAgo] = useRenderedTimeAgo(lastUpdate);
 
+  // Keep local state in sync if item changes
   useEffect(() => {
     setCoordX(item.coord_x ?? 0);
     setCoordY(item.coord_y ?? 0);
@@ -29,14 +30,18 @@ export default function ChestEditPanel({ item, saveCallback, deleteCallback, chi
     setLastUpdate(item.last_update ? new Date(item.last_update) : null);
   }, [item]);
 
+  // Fetch latest data periodically
   useEffect(() => {
     const fetchLatest = async () => {
+      if (!item.id) return;
       try {
         const data = await apiGet(`/chests/${item.id}`);
-        if (data.last_update) setLastUpdate(new Date(data.last_update));
-        if (data.amount != null) setAmount(data.amount);
-        if (data.coord_x != null) setCoordX(data.coord_x);
-        if (data.coord_y != null) setCoordY(data.coord_y);
+        if (data) {
+          setLastUpdate(data.last_update ? new Date(data.last_update) : lastUpdate);
+          if (data.amount != null) setAmount(data.amount);
+          if (data.coord_x != null) setCoordX(data.coord_x);
+          if (data.coord_y != null) setCoordY(data.coord_y);
+        }
       } catch (err) {
         console.error("Failed to fetch latest chest:", err);
       }
@@ -46,7 +51,19 @@ export default function ChestEditPanel({ item, saveCallback, deleteCallback, chi
     return () => clearInterval(interval);
   }, [item.id]);
 
-  const handleSave = async (updatedChest) => {
+  const handleSave = async () => {
+    if (!item.id) {
+      console.error("Cannot save chest: ID is undefined", item);
+      return;
+    }
+
+    const updatedChest = {
+      ...item, // ensures id, machine_id, and other fields are preserved
+      coord_x: coordX,
+      coord_y: coordY,
+      amount: amount,
+    };
+
     try {
       const saved = await apiPut(`/chests/${updatedChest.id}`, updatedChest);
       saveCallback(saved);
@@ -57,6 +74,7 @@ export default function ChestEditPanel({ item, saveCallback, deleteCallback, chi
   };
 
   const handleDelete = async () => {
+    if (!item.id) return;
     try {
       await apiDelete(`/chests/${item.id}`);
       deleteCallback(item);
@@ -66,57 +84,63 @@ export default function ChestEditPanel({ item, saveCallback, deleteCallback, chi
     }
   };
 
-  const handleFieldChange = (fieldName, value) => {
-    if (fieldName === "coord_x") setCoordX(value);
-    if (fieldName === "coord_y") setCoordY(value);
-  };
-
-  const labelStyle = { margin: 0, lineHeight: "1.2" };
-  const readOnlyStyle = { ...getInputStyles(darkMode), userSelect: "none", pointerEvents: "none" };
-
   return (
     <div style={getCardStyles(darkMode)}>
-      {/* Coordinates */}
+      {/* Coordinates and Item Name */}
       <div style={{ display: "flex", gap: "10px" }}>
         <div style={{ flex: "0.6", display: "flex", flexDirection: "column", gap: "4px" }}>
-          <label style={labelStyle}>Item Name:</label>
-          <input type="text" value={item.item_name ?? ""} readOnly style={readOnlyStyle} />
+          <label style={{ margin: 0 }}>Item Name:</label>
+          <input type="text" value={item.item_name ?? ""} readOnly style={{ ...getInputStyles(darkMode), userSelect: "none", pointerEvents: "none" }} />
         </div>
         <div style={{ flex: "0.2", display: "flex", flexDirection: "column", gap: "4px" }}>
-          <label style={labelStyle}>X:</label>
-          <input type="number" value={coordX} onChange={e => handleFieldChange("coord_x", Number(e.target.value || 0))}
-            style={{ ...getInputStyles(darkMode), textAlign: "center", MozAppearance: "textfield" }} inputMode="numeric" />
+          <label style={{ margin: 0 }}>X:</label>
+          <input
+            type="number"
+            value={coordX}
+            onChange={(e) => setCoordX(Number(e.target.value || 0))}
+            style={{ ...getInputStyles(darkMode), textAlign: "center" }}
+          />
         </div>
         <div style={{ flex: "0.2", display: "flex", flexDirection: "column", gap: "4px" }}>
-          <label style={labelStyle}>Y:</label>
-          <input type="number" value={coordY} onChange={e => handleFieldChange("coord_y", Number(e.target.value || 0))}
-            style={{ ...getInputStyles(darkMode), textAlign: "center", MozAppearance: "textfield" }} inputMode="numeric" />
+          <label style={{ margin: 0 }}>Y:</label>
+          <input
+            type="number"
+            value={coordY}
+            onChange={(e) => setCoordY(Number(e.target.value || 0))}
+            style={{ ...getInputStyles(darkMode), textAlign: "center" }}
+          />
         </div>
       </div>
 
-      {/* Amount + Rendered */}
+      {/* ID, Rendered, Last Update */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-        <span style={{ fontWeight: "bold" }}>ID: {item.id}</span>
+        <span style={{ fontWeight: "bold" }}>ID: {item.id ?? "<unsaved>"}</span>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <label style={labelStyle}>Rendered:</label>
+          <label style={{ margin: 0 }}>Rendered:</label>
           <div style={renderedCircleStyle(rendered)} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <label style={labelStyle}>Last Update:</label>
+          <label style={{ margin: 0 }}>Last Update:</label>
           <span>{timeAgo}</span>
         </div>
       </div>
 
+      {/* Save Button */}
       <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-        <button style={{ ...getButtonStyles(darkMode), backgroundColor: "#4caf50", color: "#fff", flex: 1 }}
-          onClick={() => handleSave({ ...item, coord_x: coordX, coord_y: coordY })}>
+        <button
+          style={{ ...getButtonStyles(darkMode), backgroundColor: "#4caf50", color: "#fff", flex: 1 }}
+          onClick={handleSave}
+        >
           Save
         </button>
       </div>
 
+      {/* Delete Button */}
       <div style={{ marginTop: "10px" }}>
-        <button style={{ ...getButtonStyles(darkMode), backgroundColor: "#d32f2f", color: "#fff", width: "100%" }}
-          onClick={() => setShowDeleteModal(true)}>
+        <button
+          style={{ ...getButtonStyles(darkMode), backgroundColor: "#d32f2f", color: "#fff", width: "100%" }}
+          onClick={() => setShowDeleteModal(true)}
+        >
           Delete
         </button>
       </div>
@@ -132,7 +156,7 @@ export default function ChestEditPanel({ item, saveCallback, deleteCallback, chi
       />
 
       <div style={{ marginTop: "15px" }}>
-        <ChestHistoryPanel chestId={item.id} darkMode={darkMode} />
+        {item.id && <ChestHistoryPanel chestId={item.id} darkMode={darkMode} />}
       </div>
     </div>
   );

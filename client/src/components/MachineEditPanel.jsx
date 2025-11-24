@@ -30,6 +30,7 @@ export default function MachineEditPanel({
 
   const [rendered, timeAgo] = useRenderedTimeAgo(lastUpdate);
 
+  // Sync local state with prop changes
   useEffect(() => {
     setName(item.name ?? "");
     setCoordX(item.coord_x ?? 0);
@@ -38,11 +39,17 @@ export default function MachineEditPanel({
     setLastUpdate(item.last_update ? new Date(item.last_update) : null);
   }, [item]);
 
+  // Fetch latest data periodically
   useEffect(() => {
+    if (!item.id) return;
     const fetchLatest = async () => {
       try {
         const latest = await apiGet(`/machines/${item.id}`);
         if (latest.last_update) setLastUpdate(new Date(latest.last_update));
+        if (latest.name != null) setName(latest.name);
+        if (latest.coord_x != null) setCoordX(latest.coord_x);
+        if (latest.coord_y != null) setCoordY(latest.coord_y);
+        if (latest.is_enabled != null) setIsEnabled(latest.is_enabled);
       } catch (err) {
         console.error("Failed to fetch latest machine:", err);
       }
@@ -53,21 +60,30 @@ export default function MachineEditPanel({
   }, [item.id]);
 
   const handleSave = async () => {
+    if (!item.id) {
+      console.error("Cannot save machine: ID is undefined", item);
+      return;
+    }
+
+    const updatedMachine = {
+      ...item, // preserve id, factory_id, etc.
+      name,
+      coord_x: coordX,
+      coord_y: coordY,
+      is_enabled: isEnabled
+    };
+
     try {
-      const updated = await apiPut(`/machines/${item.id}`, {
-        ...item,
-        name,
-        coord_x: coordX,
-        coord_y: coordY,
-        is_enabled: isEnabled
-      });
-      saveCallback(updated);
+      const saved = await apiPut(`/machines/${updatedMachine.id}`, updatedMachine);
+      saveCallback(saved);
+      setLastUpdate(new Date());
     } catch (err) {
       console.error("Failed to save machine:", err);
     }
   };
 
   const handleDelete = async () => {
+    if (!item.id) return;
     try {
       await apiDelete(`/machines/${item.id}`);
       deleteCallback(item);
@@ -89,19 +105,19 @@ export default function MachineEditPanel({
         </div>
         <div style={{ flex: "0.2", display: "flex", flexDirection: "column", gap: "4px" }}>
           <label style={labelStyle}>X:</label>
-          <input type="number" value={coordX} onChange={e => setCoordX(Number(e.target.value))}
+          <input type="number" value={coordX} onChange={e => setCoordX(Number(e.target.value || 0))}
             style={{ ...getInputStyles(darkMode), textAlign: "center", MozAppearance: "textfield" }} />
         </div>
         <div style={{ flex: "0.2", display: "flex", flexDirection: "column", gap: "4px" }}>
           <label style={labelStyle}>Y:</label>
-          <input type="number" value={coordY} onChange={e => setCoordY(Number(e.target.value))}
+          <input type="number" value={coordY} onChange={e => setCoordY(Number(e.target.value || 0))}
             style={{ ...getInputStyles(darkMode), textAlign: "center", MozAppearance: "textfield" }} />
         </div>
       </div>
 
       {/* Status */}
       <div style={{ display: "flex", alignItems: "center", marginTop: "10px", width: "100%" }}>
-        <div style={{ flex: 1 }}>ID: {item.id}</div>
+        <div style={{ flex: 1 }}>ID: {item.id ?? "<unsaved>"}</div>
         <div style={{ flex: 1 }}>
           Enabled: <input type="checkbox" checked={isEnabled} onChange={e => setIsEnabled(e.target.checked)} />
         </div>
@@ -132,7 +148,7 @@ export default function MachineEditPanel({
       />
 
       <div style={{ marginTop: "15px" }}>
-        <MachineHistoryPanel machineId={item.id} darkMode={darkMode} />
+        {item.id && <MachineHistoryPanel machineId={item.id} darkMode={darkMode} />}
       </div>
     </div>
   );

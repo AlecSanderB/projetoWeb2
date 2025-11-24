@@ -35,21 +35,23 @@ module.exports = {
     try {
       const machine = await db.Machines.findByPk(req.params.id);
       if (!machine) return res.status(404).json({ error: "Machine not found" });
+
       const updatedData = {
+        name: req.body.name !== undefined ? req.body.name : machine.name,
+        coord_x: req.body.coord_x !== undefined ? req.body.coord_x : machine.coord_x,
+        coord_y: req.body.coord_y !== undefined ? req.body.coord_y : machine.coord_y,
         is_enabled: req.body.is_enabled !== undefined ? req.body.is_enabled : machine.is_enabled,
-        last_update: req.body.last_update ? new Date(req.body.last_update) : new Date(),
+        last_update: new Date(),
       };
 
       await machine.update(updatedData);
 
-      res.json({
-        message: "Updated successfully",
-        machine,
-      });
+      res.json(machine);
     } catch (err) {
       res.status(500).json({ error: "Failed to update machine", details: err.message });
     }
   },
+
 
   async delete(req, res) {
     try {

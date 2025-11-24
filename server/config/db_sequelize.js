@@ -12,7 +12,6 @@ db.Factories = require("../models/relational/factories")(sequelize, DataTypes);
 db.Machines = require("../models/relational/machines")(sequelize, DataTypes);
 db.Chests = require("../models/relational/chests")(sequelize, DataTypes);
 db.ChestHistory = require("../models/relational/chest_history")(sequelize, DataTypes);
-db.UserFactory = require("../models/relational/user_factory")(sequelize, DataTypes);
 db.MachineHistory = require("../models/relational/machine_history")(sequelize, DataTypes);
 
 
@@ -28,15 +27,6 @@ db.Chests.belongsTo(db.Machines, { foreignKey: "machine_id" });
 
 db.Chests.hasMany(db.ChestHistory, { foreignKey: "chest_id" });
 db.ChestHistory.belongsTo(db.Chests, { foreignKey: "chest_id" });
-
-db.Users.belongsToMany(db.Factories, {
-  through: db.UserFactory,
-  foreignKey: "user_id",
-});
-db.Factories.belongsToMany(db.Users, {
-  through: db.UserFactory,
-  foreignKey: "factory_id",
-});
 
 db.Machines.hasMany(db.MachineHistory, { foreignKey: "machine_id" });
 db.MachineHistory.belongsTo(db.Machines, { foreignKey: "machine_id" });
