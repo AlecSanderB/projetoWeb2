@@ -31,8 +31,13 @@ export default function HistoryPanel({ type, id, darkMode }) {
 
   const loadHistory = async () => {
     if (!endpoint) return;
+
+    // ✅ Skip fetching for temporary IDs
+    if (id.toString().startsWith("temp-")) return;
+
     try {
       const data = await apiGet(endpoint);
+      if (!Array.isArray(data)) return; // prevent crashes
       data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       setHistory(data);
     } catch (err) {
@@ -68,7 +73,6 @@ export default function HistoryPanel({ type, id, darkMode }) {
       .filter((_, index) => index % step === 0)
       .map(entry => {
         const date = new Date(entry.timestamp);
-
         let formattedTime;
         switch (timeRange) {
           case "1h":

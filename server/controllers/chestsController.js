@@ -25,13 +25,20 @@ module.exports = {
     try {
       const chest = await db.Chests.create({
         ...req.body,
-        last_update: new Date()
+        last_update: new Date(),
       });
-      res.status(201).json({ last_update: nowFormatted() });
+      
+      const chestWithHistory = await db.Chests.findByPk(chest.id, { include: db.ChestHistory });
+
+      const result = chestWithHistory.get({ plain: true });
+
+      res.status(201).json(result);
     } catch (err) {
       res.status(500).json({ error: "Failed to create chest", details: err.message });
     }
   },
+
+
 
   async update(req, res) {
     try {

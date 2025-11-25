@@ -1,189 +1,124 @@
-import React, { useState, useEffect } from "react";
-import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
-import EditPanel from "../components/EditPanel";
-import { apiGet } from "../api/api";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
-import { useAdder } from "../hooks/useAdder";
-import { useDeleter } from "../hooks/useDeleter";
-import { useSaver } from "../hooks/useSaver";
-import { getCardStyles, getContainerStyles, getBodyStyles, getMainStyles } from "../styles/Styles";
+import MenuItem from "./MenuItem";
+import { getButtonStyles } from "../styles/Styles";
 
-export default function Home() {
-  const { darkMode } = useTheme();
+export default function Sidebar({
+  factories,
+  machines,
+  chests,
+  addFactory,
+  user,
+  collapsedMap,
+  setCollapsedMap,
+  selectedItem,
+  setSelectedItem,
+}) {
+  const { darkMode, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const isManager = user?.role_id === 1;
 
-  // --- State ---
-  const [user, setUser] = useState(null);
-  const [factories, setFactories] = useState([]);
-  const [machines, setMachines] = useState([]);
-  const [chests, setChests] = useState([]);
-  const [selectedFactory, setSelectedFactory] = useState(null);
-  const [selectedMachine, setSelectedMachine] = useState(null);
-  const [selectedChest, setSelectedChest] = useState(null);
-  const [editingId, setEditingId] = useState({ type: null, id: null });
-  const [editingValues, setEditingValues] = useState({});
-  const [collapsedFactories, setCollapsedFactories] = useState({});
-  const [collapsedMachines, setCollapsedMachines] = useState({});
+  const sidebarBg = darkMode ? "#1e1e2f" : "#f9f9f9";
+  const borderColor = darkMode ? "#444" : "#ccc";
 
-  // --- Load data ---
-  useEffect(() => {
-    loadUser();
-    loadFactories();
-  }, []);
+  const handleSelect = (item) => {
+    setSelectedItem({ ...item, id: String(item.id) });
+  };
 
-  async function loadUser() {
-    const data = await apiGet("/me");
-    setUser(data);
-  }
+  const handleSetCollapsed = (id, value) => {
+    setCollapsedMap(prev => ({ ...prev, [id]: value }));
+  };
 
-  async function loadFactories() {
-    const factoriesData = await apiGet("/factories");
-    const allMachines = await apiGet("/machines");
-    const allChests = await apiGet("/chests");
+  const sortByCreatedAt = (a, b) => {
+    if (!a.createdAt) return 1;  // temp items go to the bottom
+    if (!b.createdAt) return -1;
+    return new Date(a.createdAt) - new Date(b.createdAt);
+  };
 
-    setFactories(factoriesData);
-    setMachines(allMachines);
-    setChests(allChests);
-  }
-
-  // --- Auto-refresh chests ---
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      const updatedChests = await apiGet("/chests");
-      setChests(updatedChests);
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // --- Keep selected items updated ---
-  useEffect(() => {
-    if (selectedFactory) {
-      const updated = factories.find(f => f.id === selectedFactory.id);
-      if (updated) setSelectedFactory(updated);
-    }
-  }, [factories, selectedFactory?.id]);
-
-  useEffect(() => {
-    if (selectedMachine) {
-      const updated = machines.find(m => m.id === selectedMachine.id);
-      if (updated) setSelectedMachine(updated);
-    }
-  }, [machines, selectedMachine?.id]);
-
-  useEffect(() => {
-    if (selectedChest) {
-      const updated = chests.find(c => c.id === selectedChest.id);
-      if (updated) setSelectedChest(updated);
-    }
-  }, [chests, selectedChest?.id]);
-
-  // --- Hooks for CRUD operations ---
-  const state = { factories, setFactories, machines, setMachines, chests, setChests };
-  const selected = { selectedFactory, setSelectedFactory, selectedMachine, setSelectedMachine, selectedChest, setSelectedChest };
-
-  const { addFactory, addMachine, addChest } = useAdder({ user, state, selected, setEditingId, setEditingValues });
-  const { saveFactory, saveMachine, saveChest } = useSaver({ state, editingValues, setEditingValues, setEditingId });
-  const { deleteFactory, deleteMachine, deleteChest } = useDeleter({ state, selected });
-
-  // --- Selection handlers ---
-  const selectFactory = f => { setSelectedFactory(f); setSelectedMachine(null); setSelectedChest(null); };
-  const selectMachine = m => { setSelectedMachine(m); setSelectedChest(null); };
-  const selectChest = c => setSelectedChest(c);
-
-  // --- Render Edit Panel ---
-  let mainContent;
-  if (selectedChest) {
-    mainContent = (
-      <EditPanel
-        item={selectedChest}
-        type="chest"
-        fields={[
-          { name: "item_name", label: "Item Name" },
-          { name: "amount", label: "Amount", type: "number" },
-        ]}
-        saveCallback={saveChest}
-        deleteCallback={deleteChest}
-        childrenList={[]}
-        darkMode={darkMode}
-      />
-    );
-  } else if (selectedMachine) {
-    const machineChildren = chests.filter(c => c.machine_id === selectedMachine.id).map(c => ({ ...c, type: "chest" }));
-    mainContent = (
-      <EditPanel
-        item={selectedMachine}
-        type="machine"
-        fields={[
-          { name: "name", label: "Machine Name" },
-          { name: "coord_x", label: "X Coordinate", type: "number" },
-          { name: "coord_y", label: "Y Coordinate", type: "number" },
-          { name: "is_enabled", label: "Enabled", type: "checkbox" },
-        ]}
-        saveCallback={saveMachine}
-        addChildCallback={addChest}
-        deleteCallback={deleteMachine}
-        childrenList={machineChildren}
-        darkMode={darkMode}
-      />
-    );
-  } else if (selectedFactory) {
-    const factoryMachines = machines.filter(m => m.factory_id === selectedFactory.id).map(m => ({ ...m, type: "machine" }));
-    const factoryChests = chests.filter(c => factoryMachines.some(m => m.id === c.machine_id)).map(c => ({ ...c, type: "chest" }));
-    const factoryChildren = [...factoryMachines, ...factoryChests];
-
-    mainContent = (
-      <EditPanel
-        item={selectedFactory}
-        type="factory"
-        fields={[
-          { name: "name", label: "Factory Name" },
-          { name: "coord_x", label: "X Coordinate", type: "number" },
-          { name: "coord_y", label: "Y Coordinate", type: "number" },
-        ]}
-        saveCallback={saveFactory}
-        addChildCallback={addMachine}
-        deleteCallback={deleteFactory}
-        childrenList={factoryChildren}
-        darkMode={darkMode}
-      />
-    );
-  } else {
-    mainContent = (
-      <div style={getCardStyles(darkMode)}>
-        <p style={{ textAlign: "center" }}>Select a factory, machine, or chest to edit its details.</p>
-      </div>
-    );
-  }
+  const sortedFactories = [...factories].sort(sortByCreatedAt);
+  const sortedMachines = [...machines].sort(sortByCreatedAt);
+  const sortedChests = [...chests].sort(sortByCreatedAt);
 
   return (
-    <div style={getContainerStyles(darkMode)}>
-      <Navbar />
-      <div style={getBodyStyles()}>
-        <Sidebar
-          factories={factories}
-          machines={machines}
-          chests={chests}
-          editingId={editingId}
-          setEditingId={setEditingId}
-          editingValues={editingValues}
-          setEditingValues={setEditingValues}
-          saveFactory={saveFactory}
-          deleteFactory={deleteFactory}
-          deleteMachine={deleteMachine}
-          deleteChest={deleteChest}
-          addFactory={addFactory}
-          addMachine={addMachine}
-          addChest={addChest}
-          user={user}
-          selectFactory={selectFactory}
-          selectMachine={selectMachine}
-          selectChest={selectChest}
-          collapsedFactories={collapsedFactories}
-          setCollapsedFactories={setCollapsedFactories}
-          collapsedMachines={collapsedMachines}
-          setCollapsedMachines={setCollapsedMachines}
-        />
-        <div style={getMainStyles()}>{mainContent}</div>
+    <div style={{
+      width: "300px",
+      borderRight: `1px solid ${borderColor}`,
+      display: "flex",
+      flexDirection: "column",
+      backgroundColor: sidebarBg,
+      height: "100vh",
+    }}>
+      <div style={{ padding: "10px", flexShrink: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
+        <button
+          style={getButtonStyles(false, darkMode, { width: "100%", backgroundColor: darkMode ? "#1976d2" : "#4caf50", color: "#fff" })}
+          onClick={toggleTheme}
+        >
+          {darkMode ? "Light Mode" : "Dark Mode"}
+        </button>
+
+        {isManager && (
+          <button
+            style={getButtonStyles(false, darkMode, { width: "100%", backgroundColor: "#4caf50", color: "#fff" })}
+            onClick={async () => {
+              try {
+                const newFactory = await addFactory();
+                if (newFactory?.id) {
+                  const factoryIdStr = String(newFactory.id);
+                  handleSetCollapsed(factoryIdStr, false);
+                  handleSelect({ ...newFactory, type: "factory" });
+                }
+              } catch (err) {
+                console.error("Failed to add factory:", err);
+              }
+            }}
+          >
+            + Add Factory
+          </button>
+        )}
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px", minHeight: 0, paddingBottom: "60px" }}>
+        {sortedFactories.map(f => {
+          const factoryId = String(f.id);
+
+          const factoryMachines = sortedMachines
+            .filter(m => String(m.factory_id) === factoryId)
+            .sort(sortByCreatedAt)
+            .map(m => ({
+              ...m,
+              id: String(m.id),
+              type: "machine",
+              children: sortedChests
+                .filter(c => String(c.machine_id) === String(m.id))
+                .sort(sortByCreatedAt)
+                .map(c => ({ ...c, id: String(c.id), type: "chest" })),
+            }));
+
+          return (
+            <MenuItem
+              key={factoryId}
+              item={{ ...f, id: factoryId, type: "factory" }}
+              type="factory"
+              childrenItems={factoryMachines}
+              selectItem={handleSelect}
+              collapsedMap={collapsedMap}
+              setCollapsedMap={handleSetCollapsed}
+              darkMode={darkMode}
+              selectedItem={selectedItem}
+              level={0}
+            />
+          );
+        })}
+      </div>
+
+      <div style={{ padding: "10px", flexShrink: 0, position: "sticky", bottom: 0, backgroundColor: sidebarBg, zIndex: 10 }}>
+        <button
+          style={getButtonStyles(false, darkMode, { width: "100%", backgroundColor: "#f44336", color: "#fff" })}
+          onClick={() => navigate("/")}
+        >
+          Log out
+        </button>
       </div>
     </div>
   );

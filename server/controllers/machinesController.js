@@ -27,9 +27,16 @@ module.exports = {
     try {
       const machine = await db.Machines.create({
         ...req.body,
-        last_update: new Date()
+        last_update: new Date(),
       });
-      res.status(201).json({ last_update: nowFormatted() });
+
+      const machineWithChildren = await db.Machines.findByPk(machine.id, {
+        include: [db.Chests, db.MachineHistory],
+      });
+
+      const result = machineWithChildren.get({ plain: true });
+
+      res.status(201).json(result);
     } catch (err) {
       res.status(500).json({ error: "Failed to create machine", details: err.message });
     }

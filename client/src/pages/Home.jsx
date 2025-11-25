@@ -7,7 +7,29 @@ import { useTheme } from "../context/ThemeContext";
 import { useAdder } from "../hooks/useAdder";
 import { useDeleter } from "../hooks/useDeleter";
 import { useSaver } from "../hooks/useSaver";
-import { getCardStyles, getContainerStyles, getBodyStyles, getMainStyles } from "../styles/Styles";
+import {
+  getCardStyles,
+  getContainerStyles,
+  getBodyStyles,
+  getMainStyles,
+} from "../styles/Styles";
+
+function mergeServerData(prevItems, serverItems) {
+  const serverMap = new Map(serverItems.map(item => [String(item.id), { ...item, id: String(item.id) }]));
+
+  const merged = prevItems.map(item => {
+    if (item.id.startsWith("temp")) return item;
+    return serverMap.get(String(item.id)) || item;
+  });
+
+  serverItems.forEach(item => {
+    const idStr = String(item.id);
+    if (!merged.some(i => String(i.id) === idStr)) merged.push({ ...item, id: idStr });
+  });
+
+  return merged;
+}
+
 
 export default function Home() {
   const { darkMode } = useTheme();
@@ -16,14 +38,13 @@ export default function Home() {
   const [factories, setFactories] = useState([]);
   const [machines, setMachines] = useState([]);
   const [chests, setChests] = useState([]);
-  const [selectedFactory, setSelectedFactory] = useState(null);
-  const [selectedMachine, setSelectedMachine] = useState(null);
-  const [selectedChest, setSelectedChest] = useState(null);
+
   const [editingId, setEditingId] = useState({ type: null, id: null });
   const [editingValues, setEditingValues] = useState({});
-  const [collapsedFactories, setCollapsedFactories] = useState({});
-  const [collapsedMachines, setCollapsedMachines] = useState({});
+  const [collapsedMap, setCollapsedMap] = useState({});
+  const [selectedItem, setSelectedItem] = useState(null);
 
+  // Load user and initial data
   useEffect(() => {
     loadUser();
     loadFactories();
@@ -36,116 +57,114 @@ export default function Home() {
 
   async function loadFactories() {
     const factoriesData = await apiGet("/factories");
-    setFactories(factoriesData);
+    setFactories(prev => mergeServerData(prev, factoriesData));
 
     const allMachines = await apiGet("/machines");
-    setMachines(allMachines);
+    setMachines(prev => mergeServerData(prev, allMachines));
 
     const allChests = await apiGet("/chests");
-    setChests(allChests);
+    setChests(prev => mergeServerData(prev, allChests));
   }
 
   useEffect(() => {
     const interval = setInterval(async () => {
       const updatedChests = await apiGet("/chests");
-      setChests(updatedChests);
+      setChests(prev => mergeServerData(prev, updatedChests));
     }, 60000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    if (selectedChest) {
-      const updated = chests.find(c => c.id === selectedChest.id);
-      if (updated) setSelectedChest(updated);
-    }
-  }, [chests, selectedChest?.id]);
+    if (!selectedItem) return;
 
-  useEffect(() => {
-    if (selectedMachine) {
-      const updated = machines.find(m => m.id === selectedMachine.id);
-      if (updated) setSelectedMachine(updated);
-    }
-  }, [machines, selectedMachine?.id]);
+    if (String(selectedItem.id).startsWith("temp")) return;
 
-  useEffect(() => {
-    if (selectedFactory) {
-      const updated = factories.find(f => f.id === selectedFactory.id);
-      if (updated) setSelectedFactory(updated);
-    }
-  }, [factories, selectedFactory?.id]);
+    let updated;
+    if (selectedItem.type === "factory") updated = factories.find(f => String(f.id) === String(selectedItem.id));
+    else if (selectedItem.type === "machine") updated = machines.find(m => String(m.id) === String(selectedItem.id));
+    else if (selectedItem.type === "chest") updated = chests.find(c => String(c.id) === String(selectedItem.id));
 
-  // --- Hooks ---
+    if (updated) setSelectedItem({ ...updated, type: selectedItem.type });
+  }, [factories, machines, chests, selectedItem?.id]);
+
+
   const state = { factories, setFactories, machines, setMachines, chests, setChests };
-  const selected = { selectedFactory, setSelectedFactory, selectedMachine, setSelectedMachine, selectedChest, setSelectedChest };
+  const { addFactory, addMachine, addChest } = useAdder({
+    user,
+    state,
+    selectedItem,
+    setSelectedItem,
+    setEditingId,
+    setEditingValues,
+  });
+  const { saveFactory, saveMachine, saveChest } = useSaver({
+    state,
+    editingValues,
+    setEditingValues,
+    setEditingId,
+  });
+  const { deleteFactory, deleteMachine, deleteChest } = useDeleter({
+    state,
+    selectedItem,
+    setSelectedItem,
+  });
 
-  const { addFactory, addMachine, addChest } = useAdder({ user, state, selected, setEditingId, setEditingValues });
-  const { saveFactory, saveMachine, saveChest } = useSaver({ state, editingValues, setEditingValues, setEditingId });
-  const { deleteFactory, deleteMachine, deleteChest } = useDeleter({ state, selected });
-
-  // --- Selection handlers ---
-  const selectFactory = f => { setSelectedFactory(f); setSelectedMachine(null); setSelectedChest(null); };
-  const selectMachine = m => { setSelectedMachine(m); setSelectedChest(null); };
-  const selectChest = c => setSelectedChest(c);
-
-  // --- Render Edit Panel ---
+  // Build main EditPanel content
   let mainContent;
-  if (selectedChest) {
+  if (!selectedItem) {
+    mainContent = (
+      <div style={getCardStyles(darkMode)}>
+        <p style={{ textAlign: "center" }}>Select a factory, machine, or chest to edit its details.</p>
+      </div>
+    );
+  } else if (selectedItem.type === "chest") {
     mainContent = (
       <EditPanel
-        item={selectedChest}
+        item={selectedItem}
         type="chest"
-        fields={[
-          { name: "item_name", label: "Item Name" },
-          { name: "amount", label: "Amount", type: "number" },
-        ]}
         saveCallback={saveChest}
         deleteCallback={deleteChest}
+        setSelectedItem={setSelectedItem}
         childrenList={[]}
         darkMode={darkMode}
       />
     );
-  } else if (selectedMachine) {
-    const machineChildren = chests.filter(c => c.machine_id === selectedMachine.id).map(c => ({ ...c, type: "chest" }));
+  } else if (selectedItem.type === "machine") {
+    const machineChildren = chests
+      .filter(c => String(c.machine_id) === String(selectedItem.id))
+      .map(c => ({ ...c, type: "chest" }));
+
     mainContent = (
       <EditPanel
-        item={selectedMachine}
+        item={selectedItem}
         type="machine"
-        fields={[
-          { name: "name", label: "Machine Name" },
-          { name: "coord_x", label: "X Coordinate", type: "number" },
-          { name: "coord_y", label: "Y Coordinate", type: "number" },
-          { name: "is_enabled", label: "Enabled", type: "checkbox" },
-        ]}
+        addChildCallback={async () => await addChest(selectedItem)}
         saveCallback={saveMachine}
-        addChildCallback={addChest}
         deleteCallback={deleteMachine}
         childrenList={machineChildren}
         darkMode={darkMode}
       />
     );
-  } else if (selectedFactory) {
-    const factoryMachines = machines.filter(m => m.factory_id === selectedFactory.id).map(m => ({ ...m, type: "machine" }));
-    const factoryChests = chests.filter(c => factoryMachines.some(m => m.id === c.machine_id)).map(c => ({ ...c, type: "chest" }));
+  } else if (selectedItem.type === "factory") {
+    const factoryMachines = machines
+      .filter(m => String(m.factory_id) === String(selectedItem.id))
+      .map(m => ({ ...m, type: "machine" }));
+    const factoryChests = chests
+      .filter(c => factoryMachines.some(m => String(m.id) === String(c.machine_id)))
+      .map(c => ({ ...c, type: "chest" }));
     const factoryChildren = [...factoryMachines, ...factoryChests];
 
     mainContent = (
       <EditPanel
-        item={selectedFactory}
+        item={selectedItem}
         type="factory"
-        fields={[
-          { name: "name", label: "Factory Name" },
-          { name: "coord_x", label: "X Coordinate", type: "number" },
-          { name: "coord_y", label: "Y Coordinate", type: "number" },
-        ]}
+        addChildCallback={async () => await addMachine(selectedItem)}
         saveCallback={saveFactory}
-        addChildCallback={addMachine}
         deleteCallback={deleteFactory}
         childrenList={factoryChildren}
         darkMode={darkMode}
       />
     );
-  } else {
-    mainContent = <div style={getCardStyles(darkMode)}><p style={{ textAlign: "center" }}>Select a factory, machine, or chest to edit its details.</p></div>;
   }
 
   return (
@@ -157,29 +176,16 @@ export default function Home() {
           factories={factories}
           machines={machines}
           chests={chests}
-          selectedFactory={selectedFactory}
-          selectedMachine={selectedMachine}
           editingId={editingId}
           setEditingId={setEditingId}
           editingValues={editingValues}
           setEditingValues={setEditingValues}
-          saveFactory={saveFactory}
-          saveMachine={saveMachine}
-          saveChest={saveChest}
-          deleteFactory={deleteFactory}
-          deleteMachine={deleteMachine}
-          deleteChest={deleteChest}
           addFactory={addFactory}
-          addMachine={addMachine}
-          addChest={addChest}
           user={user}
-          selectFactory={selectFactory}
-          selectMachine={selectMachine}
-          selectChest={selectChest}
-          collapsedFactories={collapsedFactories}
-          setCollapsedFactories={setCollapsedFactories}
-          collapsedMachines={collapsedMachines}
-          setCollapsedMachines={setCollapsedMachines}
+          collapsedMap={collapsedMap}
+          setCollapsedMap={setCollapsedMap}
+          selectedItem={selectedItem}
+          setSelectedItem={setSelectedItem}
         />
         <div style={getMainStyles()}>{mainContent}</div>
       </div>
