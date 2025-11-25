@@ -1,7 +1,7 @@
 const db = require("../config/db_sequelize.js");
+const { nowFormatted } = require("../helpers/dateHelper.js");
 
 module.exports = {
-
   async index(req, res) {
     try {
       const chestId = req.query.chest_id;
@@ -25,10 +25,12 @@ module.exports = {
 
   async create(req, res) {
     try {
-      const entry = await db.ChestHistory.create(req.body);
-      res.status(201).json(entry);
+      const entry = await db.ChestHistory.create({
+        ...req.body,
+        last_update: new Date()
+      });
+      res.status(201).json({ last_update: nowFormatted() });
     } catch (err) {
-      console.log(err);
       res.status(500).json({ error: "Failed to create history entry", details: err.message });
     }
   },

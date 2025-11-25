@@ -2,6 +2,7 @@ const { Sequelize, DataTypes } = require("sequelize");
 const sequelize = new Sequelize("web2", "postgres", "postgres", {
   host: "localhost",
   dialect: "postgres",
+  timezone: '+00:00'
 });
 
 const db = {};

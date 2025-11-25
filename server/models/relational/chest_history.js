@@ -3,7 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     chest_id: { type: DataTypes.INTEGER, allowNull: false },
     amount: { type: DataTypes.INTEGER, allowNull: false },
-    timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+    timestamp: { type: DataTypes.DATE }
   }, {
     tableName: "chest_history",
     timestamps: false

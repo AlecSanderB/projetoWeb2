@@ -1,4 +1,5 @@
 const db = require("../config/db_sequelize.js");
+const { nowFormatted } = require("../helpers/dateHelper");
 
 module.exports = {
   async index(req, res) {
@@ -24,8 +25,11 @@ module.exports = {
 
   async create(req, res) {
     try {
-      const machine = await db.Machines.create(req.body);
-      res.status(201).json(machine);
+      const machine = await db.Machines.create({
+        ...req.body,
+        last_update: new Date()
+      });
+      res.status(201).json({ last_update: nowFormatted() });
     } catch (err) {
       res.status(500).json({ error: "Failed to create machine", details: err.message });
     }
@@ -37,21 +41,23 @@ module.exports = {
       if (!machine) return res.status(404).json({ error: "Machine not found" });
 
       const updatedData = {
-        name: req.body.name !== undefined ? req.body.name : machine.name,
-        coord_x: req.body.coord_x !== undefined ? req.body.coord_x : machine.coord_x,
-        coord_y: req.body.coord_y !== undefined ? req.body.coord_y : machine.coord_y,
-        is_enabled: req.body.is_enabled !== undefined ? req.body.is_enabled : machine.is_enabled,
-        last_update: new Date(),
+        name: req.body.name ?? machine.name,
+        coord_x: req.body.coord_x ?? machine.coord_x,
+        coord_y: req.body.coord_y ?? machine.coord_y,
+        is_enabled: req.body.is_enabled ?? machine.is_enabled,
+        last_update: new Date()
       };
 
       await machine.update(updatedData);
-
-      res.json(machine);
+      res.json({ last_update: nowFormatted() });
     } catch (err) {
       res.status(500).json({ error: "Failed to update machine", details: err.message });
     }
   },
 
+  async updateViaPost(req, res) {
+    return module.exports.update(req, res);
+  },
 
   async delete(req, res) {
     try {

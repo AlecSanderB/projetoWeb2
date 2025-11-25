@@ -12,11 +12,13 @@ export function useRenderedTimeAgo(lastUpdate) {
         return;
       }
 
-      const diffSeconds = Math.floor((new Date() - lastUpdate) / 1000);
+      const diffSeconds = Math.floor((new Date() - new Date(lastUpdate)) / 1000);
+
       setRendered(diffSeconds <= 120);
 
-      if (diffSeconds < 60) setTimeAgo(`${diffSeconds} second${diffSeconds !== 1 ? "s" : ""} ago`);
-      else if (diffSeconds < 3600) {
+      if (diffSeconds < 60) {
+        setTimeAgo(`${diffSeconds} second${diffSeconds !== 1 ? "s" : ""} ago`);
+      } else if (diffSeconds < 3600) {
         const minutes = Math.floor(diffSeconds / 60);
         setTimeAgo(`${minutes} minute${minutes !== 1 ? "s" : ""} ago`);
       } else if (diffSeconds < 86400) {

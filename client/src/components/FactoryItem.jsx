@@ -1,11 +1,11 @@
-import React, { useRef, useEffect } from "react";
+import React from "react";
 import MachineItem from "./MachineItem";
 
 export default function FactoryItem({
   factory,
   darkMode,
-  machines,
-  chests,
+  machines = [],
+  chests = [],
   editingId,
   setEditingId,
   editingValues,
@@ -16,29 +16,12 @@ export default function FactoryItem({
   selectFactory,
   selectMachine,
   selectChest,
-  collapsed,
+  collapsed = false,
   toggleCollapse,
-  collapsedMachines,
+  collapsedMachines = {},
   setCollapsedMachines,
-  addMachine
 }) {
-  const clickTimer = useRef(null);
-  const isCollapsed = collapsed || false;
   const isEditing = editingId?.type === "factory" && editingId.id === factory.id;
-
-  useEffect(() => {
-    if (isEditing && editingValues.id !== factory.id) {
-      setEditingValues({ id: factory.id, name: factory.name, coord_x: factory.coord_x, coord_y: factory.coord_y });
-    }
-  }, [isEditing, factory, editingValues, setEditingValues]);
-
-  const handleClick = () => {
-    if (clickTimer.current) return;
-    clickTimer.current = setTimeout(() => {
-      selectFactory(factory);
-      clickTimer.current = null;
-    }, 200);
-  };
 
   const handleSave = () => {
     if (editingValues.name !== undefined) {
@@ -47,8 +30,10 @@ export default function FactoryItem({
     }
   };
 
+  const handleClick = () => selectFactory(factory);
+
   const hasChildren = machines.length > 0;
-  const collapseSymbol = hasChildren ? (isCollapsed ? "▶" : "▼") : "";
+  const collapseSymbol = hasChildren ? (collapsed ? "▶" : "▼") : "";
 
   const buttonStyle = {
     marginRight: "6px",
@@ -59,11 +44,12 @@ export default function FactoryItem({
     color: darkMode ? "#fff" : "#000",
     fontSize: "14px",
     padding: 0,
-    textAlign: "center"
+    textAlign: "center",
   };
 
   return (
     <div style={{ marginBottom: "6px" }}>
+      {/* Factory Header */}
       <div style={{ display: "flex", alignItems: "center", userSelect: "none" }}>
         <button onClick={toggleCollapse} style={buttonStyle}>
           {collapseSymbol || <span style={{ display: "inline-block", width: "14px" }} />}
@@ -80,13 +66,17 @@ export default function FactoryItem({
             style={{ flex: 1 }}
           />
         ) : (
-          <span onClick={handleClick} style={{ flex: 1, cursor: "pointer" }}>
+          <span
+            onClick={handleClick}
+            style={{ flex: 1, cursor: "pointer", userSelect: "none" }}
+          >
             🏭 {factory.name || "<unnamed>"}
           </span>
         )}
       </div>
 
-      {!isCollapsed && machines.length > 0 && (
+      {/* Machines */}
+      {!collapsed && machines.length > 0 && (
         <div style={{ paddingLeft: "24px", marginTop: "4px" }}>
           {machines.map((m) => (
             <MachineItem

@@ -32,6 +32,7 @@ router.get("/machines", MachinesController.index);
 router.get("/machines/:id", MachinesController.show);
 router.post("/machines", MachinesController.create);
 router.put("/machines/:id", MachinesController.update);
+router.post("/machines/:id/update", MachinesController.updateViaPost);
 router.delete("/machines/:id", MachinesController.delete);
 
 router.get("/chests", ChestsController.index);
