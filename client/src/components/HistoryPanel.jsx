@@ -7,14 +7,14 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  Tooltip
+  Tooltip,
 } from "recharts";
 import {
   getCardStyles,
   buttonContainerStyle,
   getButtonStyles,
   toggleButtonStyles,
-  toggleCircleStyle
+  toggleCircleStyle,
 } from "../styles/Styles";
 
 export default function HistoryPanel({ type, id, darkMode }) {
@@ -23,96 +23,110 @@ export default function HistoryPanel({ type, id, darkMode }) {
   const [showRendered, setShowRendered] = useState(true);
   const [showEnabled, setShowEnabled] = useState(true);
 
-  const endpoint = type === "machine"
-    ? `/machine-history?machine_id=${id}`
-    : type === "chest"
+  const endpoint =
+    type === "machine"
+      ? `/machine-history?machine_id=${id}`
+      : type === "chest"
       ? `/chest-history?chest_id=${id}`
       : null;
 
   const loadHistory = async () => {
-    if (!endpoint) return;
-
-    // ✅ Skip fetching for temporary IDs
-    if (id.toString().startsWith("temp-")) return;
+    if (!endpoint || String(id).startsWith("temp-")) return;
 
     try {
       const data = await apiGet(endpoint);
-      if (!Array.isArray(data)) return; // prevent crashes
-      data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      setHistory(data);
+      if (!Array.isArray(data)) return;
+
+      const cleaned = data
+        .filter((e) => e.timestamp && !isNaN(new Date(e.timestamp)))
+        .sort(
+          (a, b) =>
+            new Date(a.timestamp).getTime() -
+            new Date(b.timestamp).getTime()
+        );
+
+      setHistory(cleaned);
     } catch (err) {
-      console.error(`Failed to fetch ${type} history`, err);
+      console.warn(`Failed to fetch ${type} history:`, err.message || err);
     }
   };
 
   useEffect(() => {
     loadHistory();
-    const interval = setInterval(loadHistory, 60000);
-    return () => clearInterval(interval);
+    const i = setInterval(loadHistory, 60000);
+    return () => clearInterval(i);
   }, [id, type]);
 
   const filteredHistory = useMemo(() => {
-    const now = new Date();
-    let cutoff;
-    switch (timeRange) {
-      case "1h": cutoff = new Date(now.getTime() - 60 * 60 * 1000); break;
-      case "1d": cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000); break;
-      case "7d": cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
-      case "30d":
-      default: cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    }
-    return history.filter(entry => new Date(entry.timestamp) >= cutoff);
+    const now = Date.now();
+    const ranges = {
+      "1h": now - 3600000,
+      "1d": now - 86400000,
+      "7d": now - 7 * 86400000,
+      "30d": now - 30 * 86400000,
+    };
+    return history.filter(
+      (e) => new Date(e.timestamp).getTime() >= ranges[timeRange]
+    );
   }, [history, timeRange]);
 
-  const MAX_POINTS = 50;
   const chartData = useMemo(() => {
-    if (filteredHistory.length === 0) return [];
-    const step = Math.ceil(filteredHistory.length / MAX_POINTS);
+    if (!filteredHistory.length) return [];
 
-    return filteredHistory
-      .filter((_, index) => index % step === 0)
-      .map(entry => {
-        const date = new Date(entry.timestamp);
-        let formattedTime;
-        switch (timeRange) {
-          case "1h":
-          case "1d":
-          case "7d":
-            formattedTime = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-            break;
-          case "30d":
-          default:
-            formattedTime = `${date.getMonth() + 1}/${date.getDate()}`;
-        }
+    const MAX_POINTS = 50;
+    const step = Math.max(1, Math.ceil(filteredHistory.length / MAX_POINTS));
 
-        if (type === "machine") {
-          return {
-            timestamp: formattedTime,
-            rendered: entry.is_rendered ? 1 : 0,
-            enabled: entry.is_enabled ? 1 : 0
-          };
-        } else {
-          return {
-            timestamp: formattedTime,
-            amount: entry.amount
-          };
-        }
-      });
-  }, [filteredHistory, timeRange, type]);
+    return filteredHistory.filter((_, i) => i % step === 0).map((entry) => {
+      const d = new Date(entry.timestamp);
+      const short =
+        ["1h", "1d", "7d"].includes(timeRange)
+          ? `${d.getHours().toString().padStart(2, "0")}:${d
+              .getMinutes()
+              .toString()
+              .padStart(2, "0")}`
+          : `${d.getMonth() + 1}/${d.getDate()}`;
 
-  const tooltipLabelPrefix = ["1h", "1d", "7d"].includes(timeRange) ? "Time:" : "Day:";
+      return {
+        realTimestamp: entry.timestamp,
+        displayTimestamp: short,
+        rendered: entry.is_rendered ? 1 : 0,
+        enabled: entry.is_enabled ? 1 : 0,
+        amount: entry.amount,
+      };
+    });
+  }, [filteredHistory, timeRange]);
+
+  const tooltipPrefix = ["1h", "1d", "7d"].includes(timeRange)
+    ? "Time:"
+    : "Day:";
 
   return (
     <div style={getCardStyles(darkMode)}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-        <h3 style={{ margin: 0 }}>{type.charAt(0).toUpperCase() + type.slice(1)} History</h3>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "10px",
+        }}
+      >
+        <h3 style={{ margin: 0 }}>
+          {type[0].toUpperCase() + type.slice(1)} History
+        </h3>
+
         {type === "machine" && (
           <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-            <div style={toggleButtonStyles(showRendered, darkMode)} onClick={() => setShowRendered(!showRendered)}>
+            <div
+              style={toggleButtonStyles(showRendered, darkMode)}
+              onClick={() => setShowRendered((s) => !s)}
+            >
               <span style={toggleCircleStyle("#f0dd05")} />
               Rendered
             </div>
-            <div style={toggleButtonStyles(showEnabled, darkMode)} onClick={() => setShowEnabled(!showEnabled)}>
+            <div
+              style={toggleButtonStyles(showEnabled, darkMode)}
+              onClick={() => setShowEnabled((s) => !s)}
+            >
               <span style={toggleCircleStyle("#4caf50")} />
               Enabled
             </div>
@@ -121,50 +135,95 @@ export default function HistoryPanel({ type, id, darkMode }) {
       </div>
 
       <div style={buttonContainerStyle}>
-        <button style={getButtonStyles(timeRange === "30d", darkMode)} onClick={() => setTimeRange("30d")}>Last 30 Days</button>
-        <button style={getButtonStyles(timeRange === "7d", darkMode)} onClick={() => setTimeRange("7d")}>Last 7 Days</button>
-        <button style={getButtonStyles(timeRange === "1d", darkMode)} onClick={() => setTimeRange("1d")}>Last Day</button>
-        <button style={getButtonStyles(timeRange === "1h", darkMode)} onClick={() => setTimeRange("1h")}>Last Hour</button>
+        {["30d", "7d", "1d", "1h"].map((r) => (
+          <button
+            key={r}
+            style={getButtonStyles(timeRange === r, darkMode)}
+            onClick={() => setTimeRange(r)}
+          >
+            {r === "30d"
+              ? "Last 30 Days"
+              : r === "7d"
+              ? "Last 7 Days"
+              : r === "1d"
+              ? "Last Day"
+              : "Last Hour"}
+          </button>
+        ))}
       </div>
 
-      {chartData.length === 0 ? (
+      {!chartData.length ? (
         <p>No history available.</p>
       ) : (
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={chartData} margin={{ top: type !== "chest" ? 20 : 5, bottom: type !== "chest" ? 20 : 5 }}>
+        <ResponsiveContainer key={type + id} width="100%" height={250}>
+          <LineChart
+            data={chartData}
+            margin={{
+              top: type === "chest" ? 5 : 20,
+              bottom: type === "chest" ? 5 : 20,
+            }}
+          >
             <CartesianGrid
               strokeDasharray="3 3"
               stroke={darkMode ? "#555" : "#ccc"}
               vertical={false}
             />
+
             <XAxis
-              dataKey="timestamp"
+              dataKey="realTimestamp"
               stroke={darkMode ? "#fff" : "#000"}
               interval="preserveStartEnd"
               angle={-30}
               textAnchor="end"
               height={40}
+              tickFormatter={(t) => {
+                const d = new Date(t);
+                return ["1h", "1d", "7d"].includes(timeRange)
+                  ? `${d.getHours().toString().padStart(2, "0")}:${d
+                      .getMinutes()
+                      .toString()
+                      .padStart(2, "0")}`
+                  : `${d.getMonth() + 1}/${d.getDate()}`;
+              }}
             />
+
             {type === "chest" ? (
               <YAxis stroke={darkMode ? "#fff" : "#000"} />
             ) : (
               <YAxis hide domain={[-0.2, 1.2]} />
             )}
+
             <Tooltip
-              formatter={(value) => type === "machine" ? (value === 1 ? "True" : "False") : value}
-              labelFormatter={label => `${tooltipLabelPrefix} ${label}`}
+              formatter={(v) =>
+                type === "machine" ? (v === 1 ? "True" : "False") : v
+              }
+              labelFormatter={(_, payload) =>
+                `${tooltipPrefix} ${payload?.[0]?.payload?.displayTimestamp}`
+              }
               contentStyle={{
                 backgroundColor: darkMode ? "#333" : "#fff",
                 border: "1px solid",
                 borderColor: darkMode ? "#555" : "#ccc",
                 color: darkMode ? "#fff" : "#000",
               }}
-              labelStyle={{ color: darkMode ? "#fff" : "#000", fontWeight: "bold" }}
+              labelStyle={{
+                color: darkMode ? "#fff" : "#000",
+                fontWeight: "bold",
+              }}
               itemStyle={{ color: darkMode ? "#fff" : "#000" }}
             />
-            {type === "machine" && showRendered && <Line type="linear" dataKey="rendered" stroke="#f0dd05" dot={{ r: 3 }} />}
-            {type === "machine" && showEnabled && <Line type="linear" dataKey="enabled" stroke="#4caf50" dot={{ r: 3 }} />}
-            {type === "chest" && <Line type="linear" dataKey="amount" stroke="#f57c00" dot={{ r: 3 }} />}
+
+            {type === "machine" && showRendered && (
+              <Line type="linear" dataKey="rendered" stroke="#f0dd05" dot={{ r: 3 }} />
+            )}
+
+            {type === "machine" && showEnabled && (
+              <Line type="linear" dataKey="enabled" stroke="#4caf50" dot={{ r: 3 }} />
+            )}
+
+            {type === "chest" && (
+              <Line type="linear" dataKey="amount" stroke="#f57c00" dot={{ r: 3 }} />
+            )}
           </LineChart>
         </ResponsiveContainer>
       )}
