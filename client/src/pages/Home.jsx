@@ -15,16 +15,25 @@ import {
 } from "../styles/Styles";
 
 function mergeServerData(prevItems, serverItems) {
-  const serverMap = new Map(serverItems.map(item => [String(item.id), { ...item, id: String(item.id) }]));
+  const serverMap = new Map(
+    serverItems.map(item => {
+      const idStr = item?.id != null ? String(item.id) : "";
+      return [idStr, { ...item, id: idStr }];
+    })
+  );
 
   const merged = prevItems.map(item => {
-    if (item.id.startsWith("temp")) return item;
-    return serverMap.get(String(item.id)) || item;
+    const idStr = item?.id != null ? String(item.id) : "";
+
+    if (idStr.startsWith("temp")) return { ...item, id: idStr };
+    return serverMap.get(idStr) || { ...item, id: idStr };
   });
 
   serverItems.forEach(item => {
-    const idStr = String(item.id);
-    if (!merged.some(i => String(i.id) === idStr)) merged.push({ ...item, id: idStr });
+    const idStr = item?.id != null ? String(item.id) : "";
+    if (!merged.some(i => String(i.id) === idStr)) {
+      merged.push({ ...item, id: idStr });
+    }
   });
 
   return merged;
